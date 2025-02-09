@@ -1,0 +1,21 @@
+{
+    "name": "scrypted-tempest-plugin",
+    "version": "1.0.0",
+    "description": "A Scrypted plugin for the Tempest Weather System",
+    "main": "tempest-plugin.js",
+    "scripts": {
+      "build": "tsc",
+      "watch": "tsc -w"
+    },
+    "author": "David Montgomery",
+    "license": "ISC",
+    "dependencies": {
+      "@scrypted/sdk": "^0.0.1",
+      "axios": "^0.21.1",
+      "websocket": "^1.0.31"
+    },
+    "devDependencies": {
+      "typescript": "^4.0.5"
+    }
+  }
+  

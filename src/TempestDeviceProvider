@@ -1,0 +1,31 @@
+import sdk, { DeviceProvider, ScryptedDeviceBase, ScryptedDeviceType } from '@scrypted/sdk';
+import { TempestWeatherStation } from './TempestWeatherStation';
+
+class MyDeviceProvider extends ScryptedDeviceBase implements DeviceProvider {
+    constructor() {
+        super();
+        this.discoverDevices();
+    }
+
+    async discoverDevices(): Promise<void> {
+        // Example device discovery. In a real scenario, you'd discover devices dynamically
+        await sdk.deviceManager.onDevicesChanged({
+            devices: [{
+                nativeId: 'tempest1',
+                name: 'Tempest Weather Station',
+                type: ScryptedDeviceType.Sensor,
+                interfaces: [
+                    ScryptedInterface.TemperatureSetting,
+                    ScryptedInterface.Refresh,
+                ],
+                // Add more properties and interfaces as needed
+            }]
+        });
+    }
+
+    getDevice(nativeId: string): object {
+        return new TempestWeatherStation(nativeId);
+    }
+}
+
+export default MyDeviceProvider;

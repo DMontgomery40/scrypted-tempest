@@ -3,6 +3,7 @@
    "version": "0.0.6",
    "description": "Scrypted Tempest Plugin",
    "main": "dist/index.js",
+   "type": "module",
    "scripts": {
       "build": "tsc",
       "start": "node dist/index.js",
@@ -10,11 +11,12 @@
       "scrypted-deploy": "npx scrypted-deploy"
    },
    "dependencies": {
-      "@scrypted/sdk": "0.3.118",
-      "axios": "^0.27.2"
+      "axios": "^1.6.2"
    },
    "devDependencies": {
-      "typescript": "^4.8.4"
+      "typescript": "latest",
+      "@types/node": "latest",
+      "@scrypted/sdk": "latest"
    },
    "scrypted": {
       "name": "scrypted-tempest",

@@ -1,5 +1,7 @@
 import axios from 'axios';
 import { ScryptedDeviceBase, Setting } from '@scrypted/sdk';
+import { log } from 'console';
+import { get } from 'http';
 
 export default class ScryptedTempest extends ScryptedDeviceBase {
     stationId: string;

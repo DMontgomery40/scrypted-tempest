@@ -5,10 +5,16 @@
    "main": "dist/index.js",
    "type": "module",
    "scripts": {
-      "build": "tsc",
-      "start": "node dist/index.js",
-      "watch": "tsc -w",
-      "scrypted-deploy": "npx scrypted-deploy"
+      "scrypted-webpack": "scrypted-webpack",
+      "scrypted-deploy-debug": "scrypted-deploy-debug",
+      "scrypted-debug": "scrypted-debug",
+      "scrypted-deploy": "scrypted-deploy",
+      "scrypted-start": "scrypted-start",
+      "scrypted-install-debug": "scrypted-install-debug",
+      "build": "npm run scrypted-webpack",
+      "prepublishOnly": "npm run build",
+      "start": "npm run scrypted-start",
+      "deploy": "npm run build && npm run scrypted-deploy 192.168.68.157:10443"
    },
    "dependencies": {
       "axios": "^1.6.2"

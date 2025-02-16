@@ -1,11 +1,6 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const axios_1 = __importDefault(require("axios"));
-const sdk_1 = require("@scrypted/sdk");
-class ScryptedTempest extends sdk_1.ScryptedDeviceBase {
+import axios from 'axios';
+import { ScryptedDeviceBase } from '@scrypted/sdk';
+export default class ScryptedTempest extends ScryptedDeviceBase {
     constructor(nativeId) {
         super(nativeId);
         this.pollInterval = 60000;
@@ -31,7 +26,7 @@ class ScryptedTempest extends sdk_1.ScryptedDeviceBase {
         const url = `https://api.weather.com/v2/pws/observations/current?stationId=${this.stationId}&format=json&units=e&apiKey=${this.apiKey}`;
         this.console.log(`Fetching observation data from: ${url}`);
         try {
-            const response = await axios_1.default.get(url);
+            const response = await axios.get(url);
             this.console.log('Observation data received.');
             return response.data;
         }
@@ -71,7 +66,7 @@ class ScryptedTempest extends sdk_1.ScryptedDeviceBase {
         const url = `https://api.weather.com/v3/wx/forecast/daily/5day?geocode=${geocode}&format=json&units=e&language=en-US&apiKey=${this.apiKey}`;
         this.console.log(`Fetching forecast data from: ${url}`);
         try {
-            const response = await axios_1.default.get(url);
+            const response = await axios.get(url);
             this.console.log('Forecast data received.');
             return response.data;
         }
@@ -127,4 +122,3 @@ class ScryptedTempest extends sdk_1.ScryptedDeviceBase {
         this.startPolling();
     }
 }
-exports.default = ScryptedTempest;

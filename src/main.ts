@@ -1,20 +1,32 @@
 import axios from 'axios';
 import { ScryptedDeviceBase, Setting } from '@scrypted/sdk';
 
-
 export default class ScryptedTempest extends ScryptedDeviceBase {
     stationId: string;
     apiKey: string;
+    pollInterval: number = 60000;
+    pollTimer!: NodeJS.Timeout;
 
     constructor(nativeId?: string) {
         super(nativeId);
-        // Load existing settings from storage or use default placeholders.
         this.stationId = this.storage.getItem('stationId') || 'YOUR_STATION_ID';
         this.apiKey = this.storage.getItem('apiKey') || 'yourApiKey';
         this.console.log('scrypted-tempest plugin initialized.');
+        this.startPolling();
     }
 
-    // Fetch observation data from the Tempest API.
+    startPolling() {
+        if (this.pollTimer) clearInterval(this.pollTimer);
+        this.pollTimer = setInterval(async () => {
+            try {
+                await this.updateStatus();
+            } catch (err) {
+                this.console.error('Error during polling updateStatus:', err);
+            }
+        }, this.pollInterval);
+        this.console.log(`Polling started (every ${this.pollInterval / 1000} seconds).`);
+    }
+
     async getObservation(): Promise<any> {
         const url = `https://api.weather.com/v2/pws/observations/current?stationId=${this.stationId}&format=json&units=e&apiKey=${this.apiKey}`;
         this.console.log(`Fetching observation data from: ${url}`);
@@ -28,48 +40,46 @@ export default class ScryptedTempest extends ScryptedDeviceBase {
         }
     }
 
-    // Example method to update status (e.g., log current temperature).
     async updateStatus(): Promise<void> {
         try {
             const data = await this.getObservation();
-            this.console.log(`Current Temperature: ${data.observations[0].tempF}°F`);
-            // You could trigger automations or update device properties here.
+            if (data && data.observations && data.observations.length > 0) {
+                const obs = data.observations[0];
+                this.console.log(`Current Temperature: ${obs.tempF}°F, Humidity: ${obs.humidity}%`);
+            } else {
+                this.console.warn('No observation data available.');
+            }
         } catch (error) {
             this.console.error('Error updating status:', error);
         }
     }
 
-    // Expose configuration settings to the Scrypted UI.
     async getSettings(): Promise<Setting[]> {
         return [
-            {
-                key: 'stationId',
-                title: 'Station ID',
-                description: 'Your Tempest Station ID',
-                value: this.stationId,
-            },
-            {
-                key: 'apiKey',
-                title: 'API Key',
-                description: 'Your Tempest API Key',
-                value: this.apiKey,
-            },
+            { key: 'stationId', title: 'Station ID', description: 'Your Tempest Station ID', value: this.stationId },
+            { key: 'apiKey', title: 'API Key', description: 'Your Tempest API Key', value: this.apiKey }
         ];
     }
 
-            async updateSettings(settings: { [key: string]: string }): Promise<void> {
-            // Remove any reserved properties
-            if (settings.type !== undefined) {
-                delete settings.type;
+    async updateSettings(settings: { [key: string]: string }): Promise<void> {
+        const allowedKeys = new Set(['stationId', 'apiKey']);
+        for (const key in settings) {
+            if (!allowedKeys.has(key)) {
+                this.console.warn(`Ignoring reserved key update: ${key}`);
+                continue;
             }
-            if (settings.stationId !== undefined) {
-                this.stationId = settings.stationId;
-                this.storage.setItem('stationId', settings.stationId);
+            switch (key) {
+                case 'stationId':
+                    this.stationId = settings.stationId;
+                    this.storage.setItem('stationId', settings.stationId);
+                    break;
+                case 'apiKey':
+                    this.apiKey = settings.apiKey;
+                    this.storage.setItem('apiKey', settings.apiKey);
+                    break;
             }
-            if (settings.apiKey !== undefined) {
-                this.apiKey = settings.apiKey;
-                this.storage.setItem('apiKey', settings.apiKey);
-            }
-            this.console.log('scrypted-tempest settings updated.');
-            }
+        }
+        this.console.log('scrypted-tempest settings updated.');
+        this.startPolling();
+    }
 }

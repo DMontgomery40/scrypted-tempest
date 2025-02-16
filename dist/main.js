@@ -46,6 +46,8 @@ class ScryptedTempest extends sdk_1.ScryptedDeviceBase {
             if (data && data.observations && data.observations.length > 0) {
                 const obs = data.observations[0];
                 this.console.log(`Current Temperature: ${obs.tempF}°F, Humidity: ${obs.humidity}%`);
+                // Emit the full API response as event data by updating the device state.
+                this.updateState({ WeatherObservation: data });
             }
             else {
                 this.console.warn('No observation data available.');

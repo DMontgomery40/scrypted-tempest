@@ -1,28 +1,29 @@
 {
    "name": "scrypted-tempest",
-   "version": "0.0.6",
+   "version": "0.0.7",
    "description": "Scrypted Tempest Plugin",
    "main": "dist/index.js",
-   "type": "module",
    "scripts": {
-      "scrypted-webpack": "scrypted-webpack",
+      "scrypted-setup-project": "scrypted-setup-project",
+      "prescrypted-setup-project": "scrypted-package-json",
+      "build": "scrypted-webpack",
+      "prepublishOnly": "NODE_ENV=production scrypted-webpack",
+      "prescrypted-vscode-launch": "scrypted-webpack",
+      "scrypted-vscode-launch": "scrypted-deploy-debug",
       "scrypted-deploy-debug": "scrypted-deploy-debug",
       "scrypted-debug": "scrypted-debug",
       "scrypted-deploy": "scrypted-deploy",
-      "scrypted-start": "scrypted-start",
-      "scrypted-install-debug": "scrypted-install-debug",
-      "build": "npm run scrypted-webpack",
-      "prepublishOnly": "npm run build",
-      "start": "npm run scrypted-start",
-      "deploy": "npm run build && npm run scrypted-deploy 192.168.68.157:10443"
+      "scrypted-changelog": "scrypted-changelog",
+      "scrypted-package-json": "scrypted-package-json",
+      "scrypted-readme": "scrypted-readme"
    },
    "dependencies": {
       "axios": "^1.6.2"
    },
    "devDependencies": {
-      "typescript": "latest",
+      "@scrypted/sdk": "^0.3.118",
       "@types/node": "latest",
-      "@scrypted/sdk": "latest"
+      "typescript": "latest"
    },
    "scrypted": {
       "name": "scrypted-tempest",

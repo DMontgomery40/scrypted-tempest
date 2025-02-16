@@ -2,6 +2,10 @@
    "name": "scrypted-tempest",
    "version": "0.0.7",
    "description": "Scrypted Tempest Plugin",
+   "repository": {
+      "type": "git",
+      "url": "https://github.com/dmontgomery40/scrypted-tempest.git"
+   },
    "main": "dist/index.js",
    "scripts": {
       "scrypted-setup-project": "scrypted-setup-project",

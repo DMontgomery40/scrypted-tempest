@@ -10,7 +10,15 @@ This plugin is in a very early, pre-beta state. It's published for developers wh
 ### Intended API Endpoint 
 > https://docs.google.com/document/d/1KGb8bTVYRsNgljnNH67AMhckY8AQT2FVwZ9urj8SWBs/edit?tab=t.0
 
-This version of the plugin is intended to only connect with a Weather Underground Token / API key. If you have a Tempest Weather Station, all your station data is availble via this endpoint. Howvever, this also allows users without a personal Tempest Station to connect with the closest public station.
+This version of the plugin is intended to only connect with a Weather Underground Token / API key.
+
+If you don't have a PWS (Personal Weather Station), follow the directions here: 
+
+> https://openthings.freshdesk.com/support/solutions/articles/5000017485-getting-a-weather-underground-wu-api-key
+
+(you essentially just "make one up" and get a token)
+
+ If you have a Tempest Weather Station, same instructions apply, although you'll need to register the Tempest Station first. If you've already registered your Tempest Station, you can skip this step and just go here;
 
 > https://www.wunderground.com/signup
 

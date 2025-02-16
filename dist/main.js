@@ -46,7 +46,6 @@ class ScryptedTempest extends sdk_1.ScryptedDeviceBase {
             if (data && data.observations && data.observations.length > 0) {
                 const obs = data.observations[0];
                 this.console.log(`Current Temperature: ${obs.tempF}°F, Humidity: ${obs.humidity}%`);
-                // Clone the data and remove any reserved keys
                 const safeData = JSON.parse(JSON.stringify(data));
                 if (safeData.type)
                     delete safeData.type;
@@ -67,14 +66,44 @@ class ScryptedTempest extends sdk_1.ScryptedDeviceBase {
             this.console.error('Error updating status:', error);
         }
     }
+    async getForecast() {
+        const geocode = this.storage.getItem('forecastGeocode') || 'YOUR_GEOCODE';
+        const url = `https://api.weather.com/v3/wx/forecast/daily/5day?geocode=${geocode}&format=json&units=e&language=en-US&apiKey=${this.apiKey}`;
+        this.console.log(`Fetching forecast data from: ${url}`);
+        try {
+            const response = await axios_1.default.get(url);
+            this.console.log('Forecast data received.');
+            return response.data;
+        }
+        catch (error) {
+            this.console.error('Failed to fetch forecast data:', error);
+            throw error;
+        }
+    }
+    async updateForecast() {
+        try {
+            const data = await this.getForecast();
+            if (data) {
+                this.console.log('Updating forecast state');
+                this.updateState({ Forecast: data });
+            }
+            else {
+                this.console.warn('No forecast data available.');
+            }
+        }
+        catch (error) {
+            this.console.error('Error updating forecast:', error);
+        }
+    }
     async getSettings() {
         return [
             { key: 'stationId', title: 'Station ID', description: 'Your Tempest Station ID', value: this.stationId },
-            { key: 'apiKey', title: 'API Key', description: 'Your Tempest API Key', value: this.apiKey }
+            { key: 'apiKey', title: 'API Key', description: 'Your Tempest API Key', value: this.apiKey },
+            { key: 'forecastGeocode', title: 'Forecast Geocode', description: 'Geocode for 5-day forecast (e.g., 33.74,-84.39)', value: this.storage.getItem('forecastGeocode') || 'YOUR_GEOCODE' }
         ];
     }
     async updateSettings(settings) {
-        const allowedKeys = new Set(['stationId', 'apiKey']);
+        const allowedKeys = new Set(['stationId', 'apiKey', 'forecastGeocode']);
         for (const key in settings) {
             if (!allowedKeys.has(key)) {
                 this.console.warn(`Ignoring reserved key update: ${key}`);
@@ -88,6 +117,9 @@ class ScryptedTempest extends sdk_1.ScryptedDeviceBase {
                 case 'apiKey':
                     this.apiKey = settings.apiKey;
                     this.storage.setItem('apiKey', settings.apiKey);
+                    break;
+                case 'forecastGeocode':
+                    this.storage.setItem('forecastGeocode', settings.forecastGeocode);
                     break;
             }
         }

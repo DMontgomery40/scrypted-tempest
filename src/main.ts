@@ -46,8 +46,16 @@ export default class ScryptedTempest extends ScryptedDeviceBase {
             if (data && data.observations && data.observations.length > 0) {
                 const obs = data.observations[0];
                 this.console.log(`Current Temperature: ${obs.tempF}°F, Humidity: ${obs.humidity}%`);
-            
-                (this as any).updateState({ WeatherObservation: data });
+                // Clone the data and remove any reserved keys
+                const safeData = JSON.parse(JSON.stringify(data));
+                if (safeData.type) delete safeData.type;
+                if (Array.isArray(safeData.observations)) {
+                    safeData.observations = safeData.observations.map((o: any) => {
+                        if (o.type) delete o.type;
+                        return o;
+                    });
+                }
+                (this as any).updateState({ WeatherObservation: safeData });
             } else {
                 this.console.warn('No observation data available.');
             }

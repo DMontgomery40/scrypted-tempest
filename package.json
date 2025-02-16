@@ -1,6 +1,6 @@
 {
    "name": "scrypted-tempest",
-   "version": "0.0.3",
+   "version": "0.0.6",
    "description": "Scrypted Tempest Plugin",
    "main": "dist/index.js",
    "scripts": {

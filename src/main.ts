@@ -1,38 +1,179 @@
+import sdk, { DeviceManifest, DeviceProvider, ScryptedDeviceBase, ScryptedDeviceType, ScryptedInterface, ScryptedNativeId, Setting, Settings, SettingValue } from '@scrypted/sdk';
+import { StorageSettings } from '@scrypted/sdk/storage-settings';
 import axios from 'axios';
-import { ScryptedDeviceBase, Setting } from '@scrypted/sdk';
+import { ScryptedTempestForecastDevice } from './forecastDevice';
+import { ScryptedTempestObservationsDevice } from './observationsDevice';
+import { ForecastData, Observations } from './utils';
 
-export default class ScryptedTempest extends ScryptedDeviceBase {
-    stationId: string;
-    apiKey: string;
-    pollInterval: number = 60000;
+const observationsNativeId = 'weather-observations';
+const forecastNativeId = 'weather-forecast';
+
+export default class ScryptedTempest extends ScryptedDeviceBase implements DeviceProvider, Settings {
+    storageSettings = new StorageSettings(this, {
+        stationId: {
+            type: 'string',
+            title: 'Station ID',
+            description: 'Your Tempest Station ID'
+        },
+        apiKey: {
+            type: 'password',
+            title: 'Api KEY',
+            description: 'Your Tempest API Key'
+        },
+        forecastGeocode: {
+            type: 'string',
+            group: 'Forecast',
+            title: 'Forecast Geocode',
+            description: 'Geocode for 5-day forecast (e.g., 33.74,-84.39)',
+            placeholder: '33.74,-84.39',
+        },
+        languageCode: {
+            type: 'string',
+            group: 'Forecast',
+            title: 'Language code',
+            description: 'Define the language used to provide the forecast',
+            placeholder: 'en-US',
+            defaultValue: 'en-US',
+        },
+        units: {
+            type: 'string',
+            group: 'Forecast',
+            title: 'Units',
+            description: 'Define the units used to provide the forecast',
+            defaultValue: 'e=English',
+            choices: [
+                'e=English',
+                'm=Metric',
+                'he=Hybrid',
+            ],
+        },
+        pollInterval: {
+            type: 'number',
+            title: 'Update interval in seconds',
+            defaultValue: 60,
+            onPut: async () => this.startPolling()
+        },
+        timeUtc: {
+            type: 'string',
+            title: 'UTC time',
+            readonly: true,
+            group: 'Station information'
+        },
+        timeLocal: {
+            type: 'string',
+            title: 'Local time',
+            readonly: true,
+            group: 'Station information'
+        },
+        location: {
+            type: 'string',
+            title: 'Station location',
+            readonly: true,
+            group: 'Station information'
+        },
+        softwareType: {
+            type: 'string',
+            title: 'Software type',
+            readonly: true,
+            group: 'Station information'
+        },
+    });
+
     pollTimer!: NodeJS.Timeout;
+    observationDevice: ScryptedTempestObservationsDevice;
+    forecastDevice: ScryptedTempestForecastDevice;
 
     constructor(nativeId?: string) {
         super(nativeId);
-        this.stationId = this.storage.getItem('stationId') || 'YOUR_STATION_ID';
-        this.apiKey = this.storage.getItem('apiKey') || 'yourApiKey';
-        this.console.log('scrypted-tempest plugin initialized.');
-        this.startPolling();
+
+        this.init().catch(this.console.log);
     }
 
-    startPolling() {
+    async init() {
+        const rootManifest: DeviceManifest = {
+            devices: [
+                {
+                    nativeId: observationsNativeId,
+                    name: 'Tempest weather observations',
+                    interfaces: [
+                        ScryptedInterface.Sensors,
+                        ScryptedInterface.Settings,
+                    ],
+                    type: ScryptedDeviceType.Sensor,
+                    info: {
+                        manufacturer: 'Tempest weather',
+                    }
+                },
+                {
+                    nativeId: forecastNativeId,
+                    name: 'Tempest weather forecast',
+                    interfaces: [
+                        ScryptedInterface.Sensors,
+                        ScryptedInterface.Settings,
+                    ],
+                    type: ScryptedDeviceType.Sensor,
+                    info: {
+                        manufacturer: 'Tempest weather'
+                    }
+                },
+            ],
+        };
+
+        await sdk.deviceManager.onDevicesChanged(rootManifest);
+
+        await this.startPolling();
+    }
+
+    async getDevice(nativeId: string): Promise<any> {
+        if (nativeId === observationsNativeId) {
+            if (this.observationDevice) {
+                return this.observationDevice;
+            }
+
+            const ret = new ScryptedTempestObservationsDevice(this, observationsNativeId);
+            this.observationDevice = ret
+            return ret;
+        }
+
+        if (nativeId === observationsNativeId) {
+            if (this.forecastDevice) {
+                return this.forecastDevice;
+            }
+
+            const ret = new ScryptedTempestForecastDevice(this, observationsNativeId);
+            this.forecastDevice = ret
+            return ret;
+        }
+    }
+
+    releaseDevice(id: string, nativeId: ScryptedNativeId): Promise<void> {
+        throw new Error('Method not implemented.');
+    }
+
+    async startPolling() {
         if (this.pollTimer) clearInterval(this.pollTimer);
-        this.pollTimer = setInterval(async () => {
+
+        const { pollInterval } = this.storageSettings.values;
+        const funct = async () => {
             try {
                 await this.updateStatus();
+                await this.updateForecast();
             } catch (err) {
                 this.console.error('Error during polling updateStatus:', err);
             }
-        }, this.pollInterval);
-        this.console.log(`Polling started (every ${this.pollInterval / 1000} seconds).`);
+        };
+        this.pollTimer = setInterval(funct, pollInterval * 1000);
+        await funct();
+        this.console.log(`Polling started (every ${pollInterval} seconds).`);
     }
 
-    async getObservation(): Promise<any> {
-        const url = `https://api.weather.com/v2/pws/observations/current?stationId=${this.stationId}&format=json&units=e&apiKey=${this.apiKey}`;
+    async getObservation() {
+        const { stationId, apiKey } = this.storageSettings.values;
+        const url = `https://api.weather.com/v2/pws/observations/current?stationId=${stationId}&format=json&units=m&apiKey=${apiKey}`;
         this.console.log(`Fetching observation data from: ${url}`);
         try {
-            const response = await axios.get(url);
-            this.console.log('Observation data received.');
+            const response = await axios.get<Observations>(url);
+            this.console.log(`Observation data received: ${JSON.stringify(response.data)}`);
             return response.data;
         } catch (error) {
             this.console.error('Failed to fetch observation data:', error);
@@ -43,18 +184,14 @@ export default class ScryptedTempest extends ScryptedDeviceBase {
     async updateStatus(): Promise<void> {
         try {
             const data = await this.getObservation();
-            if (data && data.observations && data.observations.length > 0) {
+            if (data.observations && data.observations.length > 0) {
                 const obs = data.observations[0];
-                this.console.log(`Current Temperature: ${obs.tempF}°F, Humidity: ${obs.humidity}%`);
-                const safeData = JSON.parse(JSON.stringify(data));
-                if (safeData.type) delete safeData.type;
-                if (Array.isArray(safeData.observations)) {
-                    safeData.observations = safeData.observations.map((o: any) => {
-                        if (o.type) delete o.type;
-                        return o;
-                    });
-                }
-                (this as any).updateState({ WeatherObservation: safeData });
+                this.observationDevice?.updateState(obs);
+
+                this.storageSettings.values.timeUtc = obs.obsTimeUtc;
+                this.storageSettings.values.timeLocal = obs.obsTimeLocal;
+                this.storageSettings.values.softwareType = obs.softwareType;
+                this.storageSettings.values.location = `${obs.country}, ${obs.neighborhood}, ${obs.lat} - ${obs.lon}`;
             } else {
                 this.console.warn('No observation data available.');
             }
@@ -64,16 +201,19 @@ export default class ScryptedTempest extends ScryptedDeviceBase {
     }
 
     async getForecast(): Promise<any> {
-        const geocode = this.storage.getItem('forecastGeocode') || 'YOUR_GEOCODE';
-        const url = `https://api.weather.com/v3/wx/forecast/daily/5day?geocode=${geocode}&format=json&units=e&language=en-US&apiKey=${this.apiKey}`;
-        this.console.log(`Fetching forecast data from: ${url}`);
-        try {
-            const response = await axios.get(url);
-            this.console.log('Forecast data received.');
-            return response.data;
-        } catch (error) {
-            this.console.error('Failed to fetch forecast data:', error);
-            throw error;
+        const { forecastGeocode, apiKey, languageCode, units } = this.storageSettings.values;
+        const unitsCode = units.split('=')[0];
+        if (forecastGeocode) {
+            const url = `https://api.weather.com/v3/wx/forecast/daily/5day?geocode=${forecastGeocode}&format=json&units=${unitsCode}&language=${languageCode}&apiKey=${apiKey}`;
+            this.console.log(`Fetching forecast data from: ${url}`);
+            try {
+                const response = await axios.get<ForecastData>(url);
+                this.console.log(`Forecast data received: ${JSON.stringify(response.data)}`);
+                return response.data;
+            } catch (error) {
+                this.console.error('Failed to fetch forecast data:', error);
+                throw error;
+            }
         }
     }
 
@@ -81,8 +221,7 @@ export default class ScryptedTempest extends ScryptedDeviceBase {
         try {
             const data = await this.getForecast();
             if (data) {
-                this.console.log('Updating forecast state');
-                (this as any).updateState({ Forecast: data });
+                this.forecastDevice?.updateState(data);
             } else {
                 this.console.warn('No forecast data available.');
             }
@@ -92,35 +231,10 @@ export default class ScryptedTempest extends ScryptedDeviceBase {
     }
 
     async getSettings(): Promise<Setting[]> {
-        return [
-            { key: 'stationId', title: 'Station ID', description: 'Your Tempest Station ID', value: this.stationId },
-            { key: 'apiKey', title: 'API Key', description: 'Your Tempest API Key', value: this.apiKey },
-            { key: 'forecastGeocode', title: 'Forecast Geocode', description: 'Geocode for 5-day forecast (e.g., 33.74,-84.39)', value: this.storage.getItem('forecastGeocode') || 'YOUR_GEOCODE' }
-        ];
+        return this.storageSettings.getSettings();
     }
 
-    async updateSettings(settings: { [key: string]: string }): Promise<void> {
-        const allowedKeys = new Set(['stationId', 'apiKey', 'forecastGeocode']);
-        for (const key in settings) {
-            if (!allowedKeys.has(key)) {
-                this.console.warn(`Ignoring reserved key update: ${key}`);
-                continue;
-            }
-            switch (key) {
-                case 'stationId':
-                    this.stationId = settings.stationId;
-                    this.storage.setItem('stationId', settings.stationId);
-                    break;
-                case 'apiKey':
-                    this.apiKey = settings.apiKey;
-                    this.storage.setItem('apiKey', settings.apiKey);
-                    break;
-                case 'forecastGeocode':
-                    this.storage.setItem('forecastGeocode', settings.forecastGeocode);
-                    break;
-            }
-        }
-        this.console.log('scrypted-tempest settings updated.');
-        this.startPolling();
+    putSetting(key: string, value: SettingValue): Promise<void> {
+        return this.storageSettings.putSetting(key, value);
     }
 }

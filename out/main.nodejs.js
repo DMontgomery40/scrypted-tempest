@@ -260,6 +260,200 @@ exports["default"] = exports.sdk;
 
 /***/ }),
 
+/***/ "./node_modules/@scrypted/sdk/dist/src/storage-settings.js":
+/*!*****************************************************************!*\
+  !*** ./node_modules/@scrypted/sdk/dist/src/storage-settings.js ***!
+  \*****************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.StorageSettings = void 0;
+const _1 = __importStar(__webpack_require__(/*! . */ "./node_modules/@scrypted/sdk/dist/src/index.js"));
+const { systemManager } = _1.default;
+function parseValue(value, setting, readDefaultValue, rawDevice) {
+    if (value === null || value === undefined) {
+        return readDefaultValue();
+    }
+    const type = setting.multiple ? 'array' : setting.type;
+    if (type === 'boolean') {
+        if (value === 'true')
+            return true;
+        if (value === 'false')
+            return false;
+        return readDefaultValue() || false;
+    }
+    if (type === 'number') {
+        const n = parseFloat(value);
+        if (!isNaN(n))
+            return n;
+        return readDefaultValue() || 0;
+    }
+    if (type === 'integer') {
+        const n = parseInt(value);
+        if (!isNaN(n))
+            return n;
+        return readDefaultValue() || 0;
+    }
+    if (type === 'array') {
+        if (!value)
+            return readDefaultValue() || [];
+        try {
+            return JSON.parse(value);
+        }
+        catch (e) {
+            return readDefaultValue() || [];
+        }
+    }
+    if (type === 'device') {
+        if (rawDevice)
+            return value;
+        return systemManager.getDeviceById(value) || systemManager.getDeviceById(readDefaultValue());
+    }
+    // string type, so check if it is json.
+    if (value && setting.json) {
+        try {
+            return JSON.parse(value);
+        }
+        catch (e) {
+            return readDefaultValue();
+        }
+    }
+    return value || readDefaultValue();
+}
+class StorageSettings {
+    constructor(device, settings) {
+        this.device = device;
+        this.settings = settings;
+        this.values = {};
+        this.hasValue = {};
+        for (const key of Object.keys(settings)) {
+            const setting = settings[key];
+            const rawGet = () => this.getItem(key);
+            let get;
+            if (setting.type !== 'clippath') {
+                get = rawGet;
+            }
+            else {
+                // maybe need a mapPut. clippath is the only complex type at the moment.
+                get = () => {
+                    try {
+                        return JSON.parse(rawGet());
+                    }
+                    catch (e) {
+                    }
+                };
+            }
+            Object.defineProperty(this.values, key, {
+                get,
+                set: value => this.putSetting(key, value),
+                enumerable: true,
+            });
+            Object.defineProperty(this.hasValue, key, {
+                get: () => this.device.storage.getItem(key) != null,
+                enumerable: true,
+            });
+        }
+    }
+    get keys() {
+        const ret = {};
+        for (const key of Object.keys(this.settings)) {
+            ret[key] = key;
+        }
+        return ret;
+    }
+    async getSettings() {
+        const onGet = await this.options?.onGet?.();
+        const ret = [];
+        for (const [key, setting] of Object.entries(this.settings)) {
+            let s = Object.assign({}, setting);
+            if (onGet?.[key])
+                s = Object.assign(s, onGet[key]);
+            if (s.onGet)
+                s = Object.assign(s, await s.onGet());
+            if (s.hide || await this.options?.hide?.[key]?.())
+                continue;
+            s.key = key;
+            s.value = this.getItemInternal(key, s, true);
+            if (typeof s.deviceFilter === 'function')
+                s.deviceFilter = s.deviceFilter.toString();
+            ret.push(s);
+            delete s.onPut;
+            delete s.onGet;
+            delete s.mapPut;
+            delete s.mapGet;
+        }
+        return ret;
+    }
+    async putSetting(key, value) {
+        const setting = this.settings[key];
+        let oldValue;
+        if (setting)
+            oldValue = this.getItemInternal(key, setting);
+        return this.putSettingInternal(setting, oldValue, key, value);
+    }
+    putSettingInternal(setting, oldValue, key, value) {
+        if (!setting?.noStore) {
+            if (setting?.mapPut)
+                value = setting.mapPut(oldValue, value);
+            // nullish values should be removed, since Storage can't persist them correctly.
+            if (value == null)
+                this.device.storage.removeItem(key);
+            else if (typeof value === 'object')
+                this.device.storage.setItem(key, JSON.stringify(value));
+            else
+                this.device.storage.setItem(key, value?.toString());
+        }
+        setting?.onPut?.(oldValue, value);
+        if (!setting?.hide)
+            this.device.onDeviceEvent(_1.ScryptedInterface.Settings, undefined);
+    }
+    getItemInternal(key, setting, rawDevice) {
+        if (!setting)
+            return this.device.storage.getItem(key);
+        const readDefaultValue = () => {
+            if (setting.persistedDefaultValue != null) {
+                this.putSettingInternal(setting, undefined, key, setting.persistedDefaultValue);
+                return setting.persistedDefaultValue;
+            }
+            return setting.defaultValue;
+        };
+        const ret = parseValue(this.device.storage.getItem(key), setting, readDefaultValue, rawDevice);
+        return setting.mapGet ? setting.mapGet(ret) : ret;
+    }
+    getItem(key) {
+        return this.getItemInternal(key, this.settings[key]);
+    }
+}
+exports.StorageSettings = StorageSettings;
+//# sourceMappingURL=storage-settings.js.map
+
+/***/ }),
+
 /***/ "./node_modules/@scrypted/sdk/dist/types/gen/index.js":
 /*!************************************************************!*\
   !*** ./node_modules/@scrypted/sdk/dist/types/gen/index.js ***!
@@ -11067,59 +11261,479 @@ module.exports = {
 
 /***/ }),
 
-/***/ "./src/main.js":
+/***/ "./src/forecastDevice.ts":
+/*!*******************************!*\
+  !*** ./src/forecastDevice.ts ***!
+  \*******************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ScryptedTempestForecastDevice = void 0;
+const sdk_1 = __webpack_require__(/*! @scrypted/sdk */ "./node_modules/@scrypted/sdk/dist/src/index.js");
+const storage_settings_1 = __webpack_require__(/*! @scrypted/sdk/storage-settings */ "./node_modules/@scrypted/sdk/dist/src/storage-settings.js");
+class ScryptedTempestForecastDevice extends sdk_1.ScryptedDeviceBase {
+    constructor(plugin, nativeId) {
+        super(nativeId);
+        this.plugin = plugin;
+        this.storageSettings = new storage_settings_1.StorageSettings(this, {});
+    }
+    async getSettings() {
+        const settings = await this.storageSettings.getSettings();
+        for (const sensor of Object.entries(this.sensors)) {
+            const [entityId, { name, unit, value }] = sensor;
+            let textValue = value;
+            if (unit) {
+                textValue += ` (${unit})`;
+            }
+            settings.push({
+                key: entityId,
+                title: `${name} (${entityId})`,
+                type: 'string',
+                readonly: true,
+                value: textValue
+            });
+        }
+        return settings;
+    }
+    putSetting(key, value) {
+        return this.storageSettings.putSetting(key, value);
+    }
+    async updateState(entityData) {
+        if (!this.sensors) {
+            this.sensors = {};
+        }
+        // const { state, entity_id, attributes: { unit_of_measurement, friendly_name } } = entityData;
+        // const unit = unit_of_measurement ? UnitConverter.getUnit(unit_of_measurement)?.unit : undefined;
+        // const numericValue = Number(state);
+        // let value = state;
+        // if (!Number.isNaN(numericValue)) {
+        //     value = UnitConverter.localToSi(numericValue, unit);
+        // }
+        // const updatedSensorData: Sensor = {
+        //     name: friendly_name,
+        //     unit,
+        //     value
+        // };
+        // const currentValue = this.sensors[entity_id];
+        // if (currentValue?.value !== value) {
+        //     this.sensors = {
+        //         ...this.sensors,
+        //         [entity_id]: updatedSensorData
+        //     };
+        //     await this.onDeviceEvent(entity_id, updatedSensorData);
+        // }
+    }
+}
+exports.ScryptedTempestForecastDevice = ScryptedTempestForecastDevice;
+
+
+/***/ }),
+
+/***/ "./src/main.ts":
 /*!*********************!*\
-  !*** ./src/main.js ***!
+  !*** ./src/main.ts ***!
   \*********************/
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+const sdk_1 = __importStar(__webpack_require__(/*! @scrypted/sdk */ "./node_modules/@scrypted/sdk/dist/src/index.js"));
+const storage_settings_1 = __webpack_require__(/*! @scrypted/sdk/storage-settings */ "./node_modules/@scrypted/sdk/dist/src/storage-settings.js");
 const axios_1 = __importDefault(__webpack_require__(/*! axios */ "./node_modules/axios/dist/node/axios.cjs"));
-const sdk_1 = __webpack_require__(/*! @scrypted/sdk */ "./node_modules/@scrypted/sdk/dist/src/index.js");
-class WeatherStation extends sdk_1.ScryptedDeviceBase {
+const forecastDevice_1 = __webpack_require__(/*! ./forecastDevice */ "./src/forecastDevice.ts");
+const observationsDevice_1 = __webpack_require__(/*! ./observationsDevice */ "./src/observationsDevice.ts");
+const observationsNativeId = 'weather-observations';
+const forecastNativeId = 'weather-forecast';
+class ScryptedTempest extends sdk_1.ScryptedDeviceBase {
     constructor(nativeId) {
         super(nativeId);
-        // Configuration values – you can later change these to be set via Scrypted's device configuration.
-        this.stationId = 'YOUR_STATION_ID';
-        this.apiKey = 'yourApiKey';
-        // Optionally initialize any state here.
-        this.console.log('WeatherStation plugin initialized.');
+        this.storageSettings = new storage_settings_1.StorageSettings(this, {
+            stationId: {
+                type: 'string',
+                title: 'Station ID',
+                description: 'Your Tempest Station ID'
+            },
+            apiKey: {
+                type: 'password',
+                title: 'Api KEY',
+                description: 'Your Tempest API Key'
+            },
+            forecastGeocode: {
+                type: 'string',
+                group: 'Forecast',
+                title: 'Forecast Geocode',
+                description: 'Geocode for 5-day forecast (e.g., 33.74,-84.39)',
+                placeholder: '33.74,-84.39',
+            },
+            languageCode: {
+                type: 'string',
+                group: 'Forecast',
+                title: 'Language code',
+                description: 'Define the language used to provide the forecast',
+                placeholder: 'en-US',
+                defaultValue: 'en-US',
+            },
+            units: {
+                type: 'string',
+                group: 'Forecast',
+                title: 'Units',
+                description: 'Define the units used to provide the forecast',
+                defaultValue: 'e=English',
+                choices: [
+                    'e=English',
+                    'm=Metric',
+                    'he=Hybrid',
+                ],
+            },
+            pollInterval: {
+                type: 'number',
+                title: 'Update interval in seconds',
+                defaultValue: 60,
+                onPut: async () => this.startPolling()
+            },
+            timeUtc: {
+                type: 'string',
+                title: 'UTC time',
+                readonly: true,
+                group: 'Station information'
+            },
+            timeLocal: {
+                type: 'string',
+                title: 'Local time',
+                readonly: true,
+                group: 'Station information'
+            },
+            location: {
+                type: 'string',
+                title: 'Station location',
+                readonly: true,
+                group: 'Station information'
+            },
+            softwareType: {
+                type: 'string',
+                title: 'Software type',
+                readonly: true,
+                group: 'Station information'
+            },
+        });
+        this.devicesMap = {};
+        this.init().catch(this.console.log);
     }
-    // Method to fetch current weather observation data
-    async getWeatherObservation() {
-        const url = `https://api.weather.com/v2/pws/observations/current?stationId=${this.stationId}&format=json&units=e&apiKey=${this.apiKey}`;
-        this.console.log(`Fetching weather data from: ${url}`);
+    async init() {
+        const rootManifest = {
+            devices: [
+                {
+                    nativeId: observationsNativeId,
+                    name: 'Tempest weather observations',
+                    interfaces: [
+                        sdk_1.ScryptedInterface.Sensors,
+                        sdk_1.ScryptedInterface.Settings,
+                    ],
+                    type: sdk_1.ScryptedDeviceType.Sensor,
+                    info: {
+                        manufacturer: 'Tempest weather',
+                    }
+                },
+                {
+                    nativeId: forecastNativeId,
+                    name: 'Tempest weather forecast',
+                    interfaces: [
+                        sdk_1.ScryptedInterface.Sensors,
+                        sdk_1.ScryptedInterface.Settings,
+                    ],
+                    type: sdk_1.ScryptedDeviceType.Sensor,
+                    info: {
+                        manufacturer: 'Tempest weather'
+                    }
+                },
+            ],
+        };
+        await sdk_1.default.deviceManager.onDevicesChanged(rootManifest);
+        await this.startPolling();
+    }
+    async getDevice(nativeId) {
+        if (nativeId === observationsNativeId) {
+            if (this.devicesMap[observationsNativeId]) {
+                return this.devicesMap[observationsNativeId];
+            }
+            const ret = new observationsDevice_1.ScryptedTempestObservationsDevice(this, observationsNativeId);
+            this.devicesMap[observationsNativeId] = ret;
+            return ret;
+        }
+        if (nativeId === observationsNativeId) {
+            if (this.devicesMap[observationsNativeId]) {
+                return this.devicesMap[observationsNativeId];
+            }
+            const ret = new forecastDevice_1.ScryptedTempestForecastDevice(this, observationsNativeId);
+            this.devicesMap[observationsNativeId] = ret;
+            return ret;
+        }
+    }
+    releaseDevice(id, nativeId) {
+        throw new Error('Method not implemented.');
+    }
+    async startPolling() {
+        if (this.pollTimer)
+            clearInterval(this.pollTimer);
+        const { pollInterval } = this.storageSettings.values;
+        const funct = async () => {
+            try {
+                await this.updateStatus();
+                await this.updateForecast();
+            }
+            catch (err) {
+                this.console.error('Error during polling updateStatus:', err);
+            }
+        };
+        this.pollTimer = setInterval(funct, pollInterval * 1000);
+        await funct();
+        this.console.log(`Polling started (every ${pollInterval} seconds).`);
+    }
+    async getObservation() {
+        const { stationId, apiKey } = this.storageSettings.values;
+        const url = `https://api.weather.com/v2/pws/observations/current?stationId=${stationId}&format=json&units=m&apiKey=${apiKey}`;
+        this.console.log(`Fetching observation data from: ${url}`);
         try {
             const response = await axios_1.default.get(url);
-            this.console.log('Weather observation data received.');
+            this.console.log(`Observation data received: ${JSON.stringify(response.data)}`);
             return response.data;
         }
         catch (error) {
-            this.console.error('Failed to fetch weather data:', error);
+            this.console.error('Failed to fetch observation data:', error);
             throw error;
         }
     }
-    // Example method to trigger an automation or process the data
-    async updateWeatherStatus() {
+    async updateStatus() {
         try {
-            const data = await this.getWeatherObservation();
-            // Here you could process the data and update device states, trigger events, etc.
-            this.console.log(`Current Temperature: ${data.observations[0].tempF}°F`);
-            // For example, you might update a property or trigger an event:
-            // this.notifyInterface('OnOff', data.observations[0].tempF > 70);
+            const data = await this.getObservation();
+            if (data.observations && data.observations.length > 0) {
+                const obs = data.observations[0];
+                this.devicesMap[observationsNativeId]?.updateState(obs);
+                this.storageSettings.values.timeUtc = obs.obsTimeUtc;
+                this.storageSettings.values.timeLocal = obs.obsTimeLocal;
+                this.storageSettings.values.softwareType = obs.softwareType;
+                this.storageSettings.values.location = `${obs.country}, ${obs.neighborhood}, ${obs.lat} - ${obs.lon}`;
+            }
+            else {
+                this.console.warn('No observation data available.');
+            }
         }
         catch (error) {
-            this.console.error('Error updating weather status:', error);
+            this.console.error('Error updating status:', error);
+        }
+    }
+    async getForecast() {
+        const { forecastGeocode, apiKey, languageCode, units } = this.storageSettings.values;
+        const unitsCode = units.split('=')[0];
+        if (forecastGeocode) {
+            const url = `https://api.weather.com/v3/wx/forecast/daily/5day?geocode=${forecastGeocode}&format=json&units=${unitsCode}&language=${languageCode}&apiKey=${apiKey}`;
+            this.console.log(`Fetching forecast data from: ${url}`);
+            try {
+                const response = await axios_1.default.get(url);
+                this.console.log(`Forecast data received: ${JSON.stringify(response.data)}`);
+                return response.data;
+            }
+            catch (error) {
+                this.console.error('Failed to fetch forecast data:', error);
+                throw error;
+            }
+        }
+    }
+    async updateForecast() {
+        try {
+            const data = await this.getForecast();
+            if (data) {
+                this.console.log('Updating forecast state');
+            }
+            else {
+                this.console.warn('No forecast data available.');
+            }
+        }
+        catch (error) {
+            this.console.error('Error updating forecast:', error);
+        }
+    }
+    async getSettings() {
+        return this.storageSettings.getSettings();
+    }
+    putSetting(key, value) {
+        return this.storageSettings.putSetting(key, value);
+    }
+}
+exports["default"] = ScryptedTempest;
+
+
+/***/ }),
+
+/***/ "./src/observationsDevice.ts":
+/*!***********************************!*\
+  !*** ./src/observationsDevice.ts ***!
+  \***********************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ScryptedTempestObservationsDevice = void 0;
+const sdk_1 = __webpack_require__(/*! @scrypted/sdk */ "./node_modules/@scrypted/sdk/dist/src/index.js");
+const storage_settings_1 = __webpack_require__(/*! @scrypted/sdk/storage-settings */ "./node_modules/@scrypted/sdk/dist/src/storage-settings.js");
+const utils_1 = __webpack_require__(/*! ./utils */ "./src/utils.ts");
+class ScryptedTempestObservationsDevice extends sdk_1.ScryptedDeviceBase {
+    constructor(plugin, nativeId) {
+        super(nativeId);
+        this.plugin = plugin;
+        this.storageSettings = new storage_settings_1.StorageSettings(this, {});
+    }
+    async getSettings() {
+        const settings = await this.storageSettings.getSettings();
+        for (const sensor of Object.entries(this.sensors)) {
+            const [entityId, { name, unit, value }] = sensor;
+            let textValue = value;
+            if (unit) {
+                textValue += ` (${unit})`;
+            }
+            settings.push({
+                key: entityId,
+                title: `${name} (${entityId})`,
+                type: 'string',
+                readonly: true,
+                value: textValue
+            });
+        }
+        return settings;
+    }
+    putSetting(key, value) {
+        return this.storageSettings.putSetting(key, value);
+    }
+    async updateState(data) {
+        if (!this.sensors) {
+            this.sensors = {};
+        }
+        const newSensorsData = (0, utils_1.convertWeatherDataToSensors)(data);
+        for (const [sensorId, updatedSensorData] of Object.entries(newSensorsData)) {
+            if (this.sensors[sensorId]?.value !== newSensorsData[sensorId]?.value) {
+                this.sensors = {
+                    ...this.sensors,
+                    [sensorId]: updatedSensorData
+                };
+                await this.onDeviceEvent(sensorId, updatedSensorData);
+            }
         }
     }
 }
-exports["default"] = WeatherStation;
-//# sourceMappingURL=main.js.map
+exports.ScryptedTempestObservationsDevice = ScryptedTempestObservationsDevice;
+
+
+/***/ }),
+
+/***/ "./src/utils.ts":
+/*!**********************!*\
+  !*** ./src/utils.ts ***!
+  \**********************/
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.convertWeatherDataToSensors = void 0;
+const convertWeatherDataToSensors = (data) => {
+    const newSensorsData = {};
+    newSensorsData['solarRadiation'] = {
+        name: 'Solar radiation',
+        unit: 'W/m²',
+        value: data.solarRadiation,
+    };
+    newSensorsData['uvIndex'] = {
+        name: 'UV index',
+        value: data.uv,
+    };
+    newSensorsData['windDirection'] = {
+        name: 'Wind direction',
+        unit: '°',
+        value: data.uv,
+    };
+    newSensorsData['humidity'] = {
+        name: 'Humidity',
+        unit: '%',
+        value: data.humidity,
+    };
+    newSensorsData['temperature'] = {
+        name: 'Temperature',
+        unit: '°C',
+        value: data.metric.temp,
+    };
+    newSensorsData['heatIndex'] = {
+        name: 'Head index',
+        value: data.metric.heatIndex,
+    };
+    newSensorsData['dewPoint'] = {
+        name: 'Dew point',
+        unit: '°C',
+        value: data.metric.dewpt,
+    };
+    newSensorsData['windChill'] = {
+        name: 'Wind chill',
+        unit: '°C',
+        value: data.metric.windChill,
+    };
+    newSensorsData['windSpeed'] = {
+        name: 'Wind speed',
+        unit: 'km/h',
+        value: data.metric.windSpeed,
+    };
+    newSensorsData['windGust'] = {
+        name: 'Wind gust',
+        unit: 'km/h',
+        value: data.metric.windGust,
+    };
+    newSensorsData['pressure'] = {
+        name: 'Pressure',
+        unit: 'hPa',
+        value: data.metric.pressure,
+    };
+    newSensorsData['rainRate'] = {
+        name: 'Rain rate',
+        unit: 'mm/h',
+        value: data.metric.precipRate,
+    };
+    newSensorsData['elevation'] = {
+        name: 'Elevation',
+        unit: 'm',
+        value: data.metric.elev,
+    };
+    return newSensorsData;
+};
+exports.convertWeatherDataToSensors = convertWeatherDataToSensors;
+
 
 /***/ }),
 
@@ -11303,7 +11917,7 @@ module.exports = require("zlib");
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module is referenced by other modules so it can't be inlined
-/******/ 	var __webpack_exports__ = __webpack_require__("./src/main.js");
+/******/ 	var __webpack_exports__ = __webpack_require__("./src/main.ts");
 /******/ 	var __webpack_export_target__ = (exports = typeof exports === "undefined" ? {} : exports);
 /******/ 	for(var __webpack_i__ in __webpack_exports__) __webpack_export_target__[__webpack_i__] = __webpack_exports__[__webpack_i__];
 /******/ 	if(__webpack_exports__.__esModule) Object.defineProperty(__webpack_export_target__, "__esModule", { value: true });

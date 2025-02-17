@@ -6,7 +6,6 @@
       "type": "git",
       "url": "https://github.com/dmontgomery40/scrypted-tempest.git"
    },
-   "main": "dist/index.js",
    "scripts": {
       "scrypted-setup-project": "scrypted-setup-project",
       "prescrypted-setup-project": "scrypted-package-json",
@@ -22,16 +21,27 @@
       "scrypted-readme": "scrypted-readme"
    },
    "dependencies": {
+      "@scrypted/sdk": "^0.3.106",
       "axios": "^1.6.2"
    },
    "devDependencies": {
-      "@scrypted/sdk": "^0.3.118",
-      "@types/node": "latest",
-      "typescript": "latest"
+     "@types/lodash": "^4.17.12",
+     "@types/node": "^22.13.4"
    },
    "scrypted": {
       "name": "scrypted-tempest",
-      "interfaces": "WeatherObservation"
+      "type": "API",
+      "interfaces": [
+         "DeviceProvider",
+         "Settings"
+      ]
    },
+   "keywords": [
+      "scrypted",
+      "plugin",
+      "tempest",
+      "weather",
+      "wu"
+   ],
    "license": "Apache-2.0"
 }

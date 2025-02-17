@@ -3,7 +3,7 @@ import { StorageSettings } from '@scrypted/sdk/storage-settings';
 import axios from 'axios';
 import { ScryptedTempestForecastDevice } from './forecastDevice';
 import { ScryptedTempestObservationsDevice } from './observationsDevice';
-import { ForecastData, Observations } from './utils';
+import { ForecastData, Observations, UnitsSelector } from './utils';
 
 const observationsNativeId = 'weather-observations';
 const forecastNativeId = 'weather-forecast';
@@ -40,11 +40,10 @@ export default class ScryptedTempest extends ScryptedDeviceBase implements Devic
             group: 'Forecast',
             title: 'Units',
             description: 'Define the units used to provide the forecast',
-            defaultValue: 'e=English',
+            defaultValue: UnitsSelector.Metric,
             choices: [
-                'e=English',
-                'm=Metric',
-                'he=Hybrid',
+                UnitsSelector.Imperial,
+                UnitsSelector.Metric,
             ],
         },
         pollInterval: {
@@ -135,12 +134,12 @@ export default class ScryptedTempest extends ScryptedDeviceBase implements Devic
             return ret;
         }
 
-        if (nativeId === observationsNativeId) {
+        if (nativeId === forecastNativeId) {
             if (this.forecastDevice) {
                 return this.forecastDevice;
             }
 
-            const ret = new ScryptedTempestForecastDevice(this, observationsNativeId);
+            const ret = new ScryptedTempestForecastDevice(this, forecastNativeId);
             this.forecastDevice = ret
             return ret;
         }

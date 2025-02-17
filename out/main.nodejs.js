@@ -1,6 +1,196 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ "../scrypted-homeassistant/src/unitConverter.ts":
+/*!******************************************************!*\
+  !*** ../scrypted-homeassistant/src/unitConverter.ts ***!
+  \******************************************************/
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.UnitConverter = exports.Unit = exports.UnitGroup = void 0;
+var UnitGroup;
+(function (UnitGroup) {
+    UnitGroup["None"] = "None";
+    UnitGroup["Temperature"] = "Temperature";
+    UnitGroup["Speed"] = "Speed";
+    UnitGroup["Length"] = "Length";
+    UnitGroup["Pressure"] = "Pressure";
+})(UnitGroup = exports.UnitGroup || (exports.UnitGroup = {}));
+var Unit;
+(function (Unit) {
+    Unit["NONE"] = "";
+    // Temperature
+    // Actually Kelving is SI for temperature
+    Unit["C"] = "\u00B0C";
+    Unit["F"] = "\u00B0F";
+    // Speed
+    Unit["M_S"] = "m/s";
+    Unit["KM_H"] = "km/h";
+    Unit["MI_H"] = "mph";
+    // Length
+    Unit["M"] = "m";
+    Unit["MM"] = "mm";
+    Unit["KM"] = "km";
+    Unit["IN"] = "in";
+    Unit["MI"] = "mi";
+    // Pressure
+    Unit["PA"] = "Pa";
+    Unit["HPA"] = "hPa";
+    Unit["BAR"] = "bar";
+})(Unit = exports.Unit || (exports.Unit = {}));
+const siUnitMap = {
+    [UnitGroup.None]: Unit.NONE,
+    [UnitGroup.Length]: Unit.M,
+    [UnitGroup.Pressure]: Unit.PA,
+    [UnitGroup.Temperature]: Unit.C,
+    [UnitGroup.Speed]: Unit.M_S,
+};
+class UnitConverter {
+    static getUnit(unitSrc) {
+        if (!unitSrc) {
+            unitSrc = UnitConverter.UNITS_MAP[Unit.NONE];
+        }
+        const unit = typeof unitSrc === 'string' ? unitSrc : unitSrc.unit;
+        const unitData = UnitConverter.UNITS_MAP?.[unit];
+        if (!unitData) {
+            return {
+                factor: 1,
+                unit: unit,
+                unitGroup: UnitGroup.None,
+            };
+        }
+        else {
+            return unitData;
+        }
+    }
+    static siToLocal(siValue, unit) {
+        if (isNaN(siValue)) {
+            return 0;
+        }
+        const unitData = UnitConverter.getUnit(unit);
+        if (!unitData) {
+            return siValue;
+        }
+        const value = unitData.conversionFormula ?
+            eval(unitData.conversionFormula
+                .replaceAll('{fromSi}', 'true')
+                .replaceAll('{value}', String(siValue))) :
+            siValue / unitData.factor;
+        if (!isNaN(value)) {
+            return value;
+        }
+        else {
+            return 0;
+        }
+    }
+    static localToSi(localValue, unit) {
+        const unitData = UnitConverter.getUnit(unit);
+        if (!unitData) {
+            return localValue;
+        }
+        const value = unitData.conversionFormula ?
+            eval(unitData.conversionFormula
+                .replaceAll('{fromSi}', 'false')
+                .replaceAll('{value}', String(localValue))) :
+            localValue * unitData.factor;
+        if (!isNaN(value)) {
+            return value;
+        }
+        else {
+            return 0;
+        }
+    }
+    static getUnits(unit) {
+        const unitData = UnitConverter.UNITS_MAP[unit];
+        if (!unitData) {
+            return [unit];
+        }
+        const { unitGroup } = unitData;
+        return Object.values(UnitConverter.UNITS_MAP)
+            .filter(unit => unit.unitGroup === unitGroup && unit.unit)
+            ?.map(unit => unit.unit);
+    }
+}
+exports.UnitConverter = UnitConverter;
+UnitConverter.UNITS_MAP = {
+    [Unit.NONE]: {
+        unit: Unit.NONE,
+        unitGroup: UnitGroup.Temperature,
+        factor: 1,
+    },
+    [Unit.C]: {
+        unit: Unit.C,
+        unitGroup: UnitGroup.Temperature,
+        factor: 1,
+    },
+    [Unit.F]: {
+        unit: Unit.F,
+        unitGroup: UnitGroup.Temperature,
+        conversionFormula: '{fromSi} ? ({value} * 1.8 + 32) : (({value} - 32) / 1.8)',
+    },
+    [Unit.M_S]: {
+        unit: Unit.M_S,
+        unitGroup: UnitGroup.Speed,
+        factor: 1,
+    },
+    [Unit.KM_H]: {
+        unit: Unit.KM_H,
+        unitGroup: UnitGroup.Speed,
+        factor: 0.277777777777778,
+    },
+    [Unit.MI_H]: {
+        unit: Unit.MI_H,
+        unitGroup: UnitGroup.Speed,
+        factor: 0.447038888888889,
+    },
+    [Unit.M]: {
+        unit: Unit.M,
+        unitGroup: UnitGroup.Length,
+        factor: 1,
+    },
+    [Unit.MM]: {
+        unit: Unit.MM,
+        unitGroup: UnitGroup.Length,
+        factor: 0.001,
+    },
+    [Unit.KM]: {
+        unit: Unit.KM,
+        unitGroup: UnitGroup.Length,
+        factor: 1000,
+    },
+    [Unit.IN]: {
+        unit: Unit.IN,
+        unitGroup: UnitGroup.Length,
+        factor: 0.0254,
+    },
+    [Unit.MI]: {
+        unit: Unit.MI,
+        unitGroup: UnitGroup.Length,
+        factor: 1609.34,
+    },
+    [Unit.PA]: {
+        unit: Unit.PA,
+        unitGroup: UnitGroup.Pressure,
+        factor: 1,
+    },
+    [Unit.HPA]: {
+        unit: Unit.HPA,
+        unitGroup: UnitGroup.Pressure,
+        factor: 0.01,
+    },
+    [Unit.BAR]: {
+        unit: Unit.BAR,
+        unitGroup: UnitGroup.Pressure,
+        factor: 0.00001,
+    },
+};
+
+
+/***/ }),
+
 /***/ "./node_modules/@scrypted/sdk/dist/src sync recursive":
 /*!***************************************************!*\
   !*** ./node_modules/@scrypted/sdk/dist/src/ sync ***!
@@ -11272,58 +11462,31 @@ module.exports = {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ScryptedTempestForecastDevice = void 0;
 const sdk_1 = __webpack_require__(/*! @scrypted/sdk */ "./node_modules/@scrypted/sdk/dist/src/index.js");
-const storage_settings_1 = __webpack_require__(/*! @scrypted/sdk/storage-settings */ "./node_modules/@scrypted/sdk/dist/src/storage-settings.js");
+const utils_1 = __webpack_require__(/*! ./utils */ "./src/utils.ts");
 class ScryptedTempestForecastDevice extends sdk_1.ScryptedDeviceBase {
     constructor(plugin, nativeId) {
         super(nativeId);
         this.plugin = plugin;
-        this.storageSettings = new storage_settings_1.StorageSettings(this, {});
+        this.settings = [];
     }
     async getSettings() {
-        const settings = await this.storageSettings.getSettings();
-        for (const sensor of Object.entries(this.sensors)) {
-            const [entityId, { name, unit, value }] = sensor;
-            let textValue = value;
-            if (unit) {
-                textValue += ` (${unit})`;
-            }
-            settings.push({
-                key: entityId,
-                title: `${name} (${entityId})`,
-                type: 'string',
-                readonly: true,
-                value: textValue
-            });
-        }
-        return settings;
+        return this.settings;
     }
     putSetting(key, value) {
-        return this.storageSettings.putSetting(key, value);
+        return this.storage.putSetting(key, value);
     }
-    async updateState(entityData) {
+    async updateState(data) {
         if (!this.sensors) {
             this.sensors = {};
         }
-        // const { state, entity_id, attributes: { unit_of_measurement, friendly_name } } = entityData;
-        // const unit = unit_of_measurement ? UnitConverter.getUnit(unit_of_measurement)?.unit : undefined;
-        // const numericValue = Number(state);
-        // let value = state;
-        // if (!Number.isNaN(numericValue)) {
-        //     value = UnitConverter.localToSi(numericValue, unit);
-        // }
-        // const updatedSensorData: Sensor = {
-        //     name: friendly_name,
-        //     unit,
-        //     value
-        // };
-        // const currentValue = this.sensors[entity_id];
-        // if (currentValue?.value !== value) {
-        //     this.sensors = {
-        //         ...this.sensors,
-        //         [entity_id]: updatedSensorData
-        //     };
-        //     await this.onDeviceEvent(entity_id, updatedSensorData);
-        // }
+        const { newSensorsData, settings } = (0, utils_1.convertForecastDataToSensors)(data, this.plugin.storageSettings.values.units);
+        this.settings = settings;
+        for (const [sensorId, updatedSensorData] of Object.entries(newSensorsData)) {
+            if (this.sensors[sensorId]?.value !== newSensorsData[sensorId]?.value) {
+                await this.onDeviceEvent(sensorId, updatedSensorData);
+            }
+        }
+        this.sensors = newSensorsData;
     }
 }
 exports.ScryptedTempestForecastDevice = ScryptedTempestForecastDevice;
@@ -11371,6 +11534,7 @@ const storage_settings_1 = __webpack_require__(/*! @scrypted/sdk/storage-setting
 const axios_1 = __importDefault(__webpack_require__(/*! axios */ "./node_modules/axios/dist/node/axios.cjs"));
 const forecastDevice_1 = __webpack_require__(/*! ./forecastDevice */ "./src/forecastDevice.ts");
 const observationsDevice_1 = __webpack_require__(/*! ./observationsDevice */ "./src/observationsDevice.ts");
+const utils_1 = __webpack_require__(/*! ./utils */ "./src/utils.ts");
 const observationsNativeId = 'weather-observations';
 const forecastNativeId = 'weather-forecast';
 class ScryptedTempest extends sdk_1.ScryptedDeviceBase {
@@ -11407,11 +11571,10 @@ class ScryptedTempest extends sdk_1.ScryptedDeviceBase {
                 group: 'Forecast',
                 title: 'Units',
                 description: 'Define the units used to provide the forecast',
-                defaultValue: 'e=English',
+                defaultValue: utils_1.UnitsSelector.Metric,
                 choices: [
-                    'e=English',
-                    'm=Metric',
-                    'he=Hybrid',
+                    utils_1.UnitsSelector.Imperial,
+                    utils_1.UnitsSelector.Metric,
                 ],
             },
             pollInterval: {
@@ -11445,7 +11608,6 @@ class ScryptedTempest extends sdk_1.ScryptedDeviceBase {
                 group: 'Station information'
             },
         });
-        this.devicesMap = {};
         this.init().catch(this.console.log);
     }
     async init() {
@@ -11482,19 +11644,19 @@ class ScryptedTempest extends sdk_1.ScryptedDeviceBase {
     }
     async getDevice(nativeId) {
         if (nativeId === observationsNativeId) {
-            if (this.devicesMap[observationsNativeId]) {
-                return this.devicesMap[observationsNativeId];
+            if (this.observationDevice) {
+                return this.observationDevice;
             }
             const ret = new observationsDevice_1.ScryptedTempestObservationsDevice(this, observationsNativeId);
-            this.devicesMap[observationsNativeId] = ret;
+            this.observationDevice = ret;
             return ret;
         }
-        if (nativeId === observationsNativeId) {
-            if (this.devicesMap[observationsNativeId]) {
-                return this.devicesMap[observationsNativeId];
+        if (nativeId === forecastNativeId) {
+            if (this.forecastDevice) {
+                return this.forecastDevice;
             }
-            const ret = new forecastDevice_1.ScryptedTempestForecastDevice(this, observationsNativeId);
-            this.devicesMap[observationsNativeId] = ret;
+            const ret = new forecastDevice_1.ScryptedTempestForecastDevice(this, forecastNativeId);
+            this.forecastDevice = ret;
             return ret;
         }
     }
@@ -11537,7 +11699,7 @@ class ScryptedTempest extends sdk_1.ScryptedDeviceBase {
             const data = await this.getObservation();
             if (data.observations && data.observations.length > 0) {
                 const obs = data.observations[0];
-                this.devicesMap[observationsNativeId]?.updateState(obs);
+                this.observationDevice?.updateState(obs);
                 this.storageSettings.values.timeUtc = obs.obsTimeUtc;
                 this.storageSettings.values.timeLocal = obs.obsTimeLocal;
                 this.storageSettings.values.softwareType = obs.softwareType;
@@ -11572,7 +11734,7 @@ class ScryptedTempest extends sdk_1.ScryptedDeviceBase {
         try {
             const data = await this.getForecast();
             if (data) {
-                this.console.log('Updating forecast state');
+                this.forecastDevice?.updateState(data);
             }
             else {
                 this.console.warn('No forecast data available.');
@@ -11641,13 +11803,10 @@ class ScryptedTempestObservationsDevice extends sdk_1.ScryptedDeviceBase {
         const newSensorsData = (0, utils_1.convertWeatherDataToSensors)(data);
         for (const [sensorId, updatedSensorData] of Object.entries(newSensorsData)) {
             if (this.sensors[sensorId]?.value !== newSensorsData[sensorId]?.value) {
-                this.sensors = {
-                    ...this.sensors,
-                    [sensorId]: updatedSensorData
-                };
                 await this.onDeviceEvent(sensorId, updatedSensorData);
             }
         }
+        this.sensors = newSensorsData;
     }
 }
 exports.ScryptedTempestObservationsDevice = ScryptedTempestObservationsDevice;
@@ -11659,12 +11818,13 @@ exports.ScryptedTempestObservationsDevice = ScryptedTempestObservationsDevice;
 /*!**********************!*\
   !*** ./src/utils.ts ***!
   \**********************/
-/***/ ((__unused_webpack_module, exports) => {
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.convertWeatherDataToSensors = void 0;
+exports.convertForecastDataToSensors = exports.UnitsSelector = exports.convertWeatherDataToSensors = void 0;
+const unitConverter_1 = __webpack_require__(/*! ../../scrypted-homeassistant/src/unitConverter */ "../scrypted-homeassistant/src/unitConverter.ts");
 const convertWeatherDataToSensors = (data) => {
     const newSensorsData = {};
     newSensorsData['solarRadiation'] = {
@@ -11733,6 +11893,202 @@ const convertWeatherDataToSensors = (data) => {
     return newSensorsData;
 };
 exports.convertWeatherDataToSensors = convertWeatherDataToSensors;
+var UnitsSelector;
+(function (UnitsSelector) {
+    UnitsSelector["Imperial"] = "e=English";
+    UnitsSelector["Metric"] = "m=Metric";
+})(UnitsSelector = exports.UnitsSelector || (exports.UnitsSelector = {}));
+const getUnit = (units, unitGroup) => {
+    const isMetric = units === UnitsSelector.Metric;
+    if (unitGroup === unitConverter_1.UnitGroup.Temperature) {
+        return isMetric ? unitConverter_1.Unit.C : unitConverter_1.Unit.F;
+    }
+    else if (unitGroup === unitConverter_1.UnitGroup.Speed) {
+        return isMetric ? unitConverter_1.Unit.KM_H : unitConverter_1.Unit.MI_H;
+    }
+};
+const convertForecastDataToSensors = (data, units) => {
+    const daysAmount = data.dayOfWeek.length;
+    const partsPerDay = data.daypart[0].daypartName.length / daysAmount;
+    const dayIndexes = Array.from(Array(daysAmount), (_, index) => index);
+    const settings = [];
+    const newSensorsData = {};
+    for (const dayIndex of dayIndexes) {
+        const dayPartIndexes = Array.from(Array(partsPerDay), (_, index) => index);
+        const group = dayIndex === 0 ? 'Today' : data.dayOfWeek[dayIndex];
+        const addSetting = (props) => {
+            const { name, sensorId, subgroup, value, unit } = props;
+            let textValue = value;
+            if (unit) {
+                textValue += ` (${unit})`;
+            }
+            newSensorsData[sensorId] = {
+                name,
+                unit,
+                value,
+            };
+            settings.push({
+                key: sensorId,
+                title: `${name} (${sensorId})`,
+                type: 'string',
+                readonly: true,
+                value: textValue,
+                group,
+                subgroup,
+            });
+        };
+        addSetting({
+            name: 'Narrative',
+            sensorId: `narrative${dayIndex}`,
+            value: data.narrative[dayIndex],
+        });
+        addSetting({
+            name: 'Expiration time UTC',
+            sensorId: `expirationTime${dayIndex}`,
+            value: data.expirationTimeUtc[dayIndex],
+        });
+        addSetting({
+            name: 'Moonphase',
+            sensorId: `moonPhase${dayIndex}`,
+            value: data.moonPhase[dayIndex],
+        });
+        addSetting({
+            name: 'Moonrise time local',
+            sensorId: `moonriseTimeLocal${dayIndex}`,
+            value: data.moonriseTimeLocal[dayIndex],
+        });
+        addSetting({
+            name: 'Moonset time local',
+            sensorId: `moonsetTimeLocal${dayIndex}`,
+            value: data.moonsetTimeLocal[dayIndex],
+        });
+        addSetting({
+            name: 'Sunrise time local',
+            sensorId: `sunriseTimeLocal${dayIndex}`,
+            value: data.sunriseTimeLocal[dayIndex],
+        });
+        addSetting({
+            name: 'Temperature max',
+            sensorId: `temperatureMax${dayIndex}`,
+            value: unitConverter_1.UnitConverter.localToSi(data.temperatureMax[dayIndex], getUnit(units, unitConverter_1.UnitGroup.Temperature)),
+            unit: unitConverter_1.Unit.C
+        });
+        addSetting({
+            name: 'Temperature min',
+            sensorId: `temperatureMax${dayIndex}`,
+            value: unitConverter_1.UnitConverter.localToSi(data.temperatureMax[dayIndex], getUnit(units, unitConverter_1.UnitGroup.Temperature)),
+            unit: unitConverter_1.Unit.C
+        });
+        for (const dayPartIndex of dayPartIndexes) {
+            const partIndex = dayPartIndex + (dayIndex * partsPerDay);
+            const partName = data.daypart[0]?.daypartName[partIndex];
+            const partCode = data.daypart[0]?.dayOrNight[partIndex];
+            addSetting({
+                name: 'Narrative',
+                sensorId: `narrative${dayIndex}${partCode}`,
+                value: data.daypart[0]?.narrative[partIndex],
+                subgroup: partName
+            });
+            addSetting({
+                name: 'Qualifier phrase',
+                sensorId: `qualifierPhrase${dayIndex}${partCode}`,
+                value: data.daypart[0]?.qualifierPhrase[partIndex],
+                subgroup: partName
+            });
+            addSetting({
+                name: 'Sensible weather phrase',
+                sensorId: `sensibleWeatherPhrase${dayIndex}${partCode}`,
+                value: data.daypart[0]?.wxPhraseLong[partIndex],
+                subgroup: partName
+            });
+            addSetting({
+                name: 'Cloud coverage',
+                sensorId: `cloudCover${dayIndex}${partCode}`,
+                value: data.daypart[0]?.cloudCover[partIndex],
+                subgroup: partName
+            });
+            addSetting({
+                name: 'Precipitation chance',
+                sensorId: `precipChance${dayIndex}${partCode}`,
+                value: data.daypart[0]?.precipChance[partIndex],
+                unit: '%',
+                subgroup: partName
+            });
+            addSetting({
+                name: 'Precipitation type',
+                sensorId: `precipType${dayIndex}${partCode}`,
+                value: data.daypart[0]?.precipType[partIndex],
+                subgroup: partName
+            });
+            addSetting({
+                name: 'Relative humidity',
+                sensorId: `relativeHumidity${dayIndex}${partCode}`,
+                value: data.daypart[0]?.relativeHumidity[partIndex],
+                unit: '%',
+                subgroup: partName
+            });
+            addSetting({
+                name: 'Temperature',
+                sensorId: `temperature${dayIndex}`,
+                value: unitConverter_1.UnitConverter.localToSi(data.daypart[0]?.temperature[partIndex], getUnit(units, unitConverter_1.UnitGroup.Temperature)),
+                unit: unitConverter_1.Unit.C
+            });
+            addSetting({
+                name: 'Heat index',
+                sensorId: `temperatureHeatIndex${dayIndex}${partCode}`,
+                value: data.daypart[0]?.temperatureHeatIndex[partIndex],
+                subgroup: partName
+            });
+            addSetting({
+                name: 'Thunder index',
+                sensorId: `thunderIndex${dayIndex}${partCode}`,
+                value: data.daypart[0]?.thunderIndex[partIndex],
+                subgroup: partName
+            });
+            addSetting({
+                name: 'UV index',
+                sensorId: `uvIndex${dayIndex}${partCode}`,
+                value: data.daypart[0]?.uvIndex[partIndex],
+                subgroup: partName
+            });
+            addSetting({
+                name: 'UV phrase',
+                sensorId: `uvDescription${dayIndex}${partCode}`,
+                value: data.daypart[0]?.uvDescription[partIndex],
+                subgroup: partName
+            });
+            addSetting({
+                name: 'Wind chill',
+                sensorId: `uvDescription${dayIndex}${partCode}`,
+                value: unitConverter_1.UnitConverter.localToSi(data.daypart[0]?.temperatureWindChill[partIndex], getUnit(units, unitConverter_1.UnitGroup.Temperature)),
+                unit: unitConverter_1.Unit.C,
+                subgroup: partName
+            });
+            addSetting({
+                name: 'Wind direction',
+                sensorId: `windDirection${dayIndex}${partCode}`,
+                value: data.daypart[0]?.windDirection[partIndex],
+                unit: '°',
+                subgroup: partName
+            });
+            addSetting({
+                name: 'Wind phrase',
+                sensorId: `windPhrase${dayIndex}${partCode}`,
+                value: data.daypart[0]?.windPhrase[partIndex],
+                subgroup: partName
+            });
+            addSetting({
+                name: 'Wind speed',
+                sensorId: `windSpeed${dayIndex}${partCode}`,
+                value: unitConverter_1.UnitConverter.localToSi(data.daypart[0]?.windSpeed[partIndex], getUnit(units, unitConverter_1.UnitGroup.Speed)),
+                unit: unitConverter_1.Unit.M_S,
+                subgroup: partName
+            });
+        }
+    }
+    return { newSensorsData, settings };
+};
+exports.convertForecastDataToSensors = convertForecastDataToSensors;
 
 
 /***/ }),

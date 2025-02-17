@@ -46,13 +46,10 @@ export class ScryptedTempestObservationsDevice extends ScryptedDeviceBase implem
 
         for (const [sensorId, updatedSensorData] of Object.entries(newSensorsData)) {
             if (this.sensors[sensorId]?.value !== newSensorsData[sensorId]?.value) {
-                this.sensors = {
-                    ...this.sensors,
-                    [sensorId]: updatedSensorData
-                };
-
                 await this.onDeviceEvent(sensorId, updatedSensorData);
             }
         }
+
+        this.sensors = newSensorsData;
     }
 }

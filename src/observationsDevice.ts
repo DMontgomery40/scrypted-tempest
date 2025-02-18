@@ -38,14 +38,10 @@ export class ScryptedTempestObservationsDevice extends ScryptedDeviceBase implem
     }
 
     async updateState(data: ObservationsData) {
-        if (!this.sensors) {
-            this.sensors = {};
-        }
-
         const newSensorsData = convertWeatherDataToSensors(data);
 
         for (const [sensorId, updatedSensorData] of Object.entries(newSensorsData)) {
-            if (this.sensors[sensorId]?.value !== newSensorsData[sensorId]?.value) {
+            if (this.sensors?.[sensorId]?.value !== newSensorsData[sensorId]?.value) {
                 await this.onDeviceEvent(sensorId, updatedSensorData);
             }
         }

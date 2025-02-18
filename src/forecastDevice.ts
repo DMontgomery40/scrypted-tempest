@@ -18,15 +18,11 @@ export class ScryptedTempestForecastDevice extends ScryptedDeviceBase implements
     }
 
     async updateState(data: ForecastData) {
-        if (!this.sensors) {
-            this.sensors = {};
-        }
-
         const { newSensorsData, settings } = convertForecastDataToSensors(data, this.plugin.storageSettings.values.units);
         this.settings = settings;
 
         for (const [sensorId, updatedSensorData] of Object.entries(newSensorsData)) {
-            if (this.sensors[sensorId]?.value !== newSensorsData[sensorId]?.value) {
+            if (this.sensors?.[sensorId]?.value !== newSensorsData[sensorId]?.value) {
                 await this.onDeviceEvent(sensorId, updatedSensorData);
             }
         }

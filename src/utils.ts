@@ -203,7 +203,7 @@ export const convertForecastDataToSensors = (data: ForecastData, units: UnitsSel
             }
 
             newSensorsData[sensorId] = {
-                name,
+                name: subgroup ? `${name} ${subgroup}` : `${name} ${group}`,
                 unit,
                 value,
             };
@@ -220,43 +220,48 @@ export const convertForecastDataToSensors = (data: ForecastData, units: UnitsSel
         };
 
         addSetting({
-            name: `Narrative ${group}`,
+            name: `Narrative`,
             sensorId: `narrative${dayIndex}`,
             value: data.narrative[dayIndex],
         });
+        // addSetting({
+        //     name: `Expiration time UTC`,
+        //     sensorId: `expirationTime${dayIndex}`,
+        //     value: data.expirationTimeUtc[dayIndex],
+        // });
+        // addSetting({
+        //     name: `Moonphase`,
+        //     sensorId: `moonPhase${dayIndex}`,
+        //     value: data.moonPhase[dayIndex],
+        // });
+        // addSetting({
+        //     name: `Moonrise time local`,
+        //     sensorId: `moonriseTimeLocal${dayIndex}`,
+        //     value: data.moonriseTimeLocal[dayIndex],
+        // });
+        // addSetting({
+        //     name: `Moonset time local`,
+        //     sensorId: `moonsetTimeLocal${dayIndex}`,
+        //     value: data.moonsetTimeLocal[dayIndex],
+        // });
         addSetting({
-            name: `Expiration time UTC ${group}`,
-            sensorId: `expirationTime${dayIndex}`,
-            value: data.expirationTimeUtc[dayIndex],
-        });
-        addSetting({
-            name: `Moonphase ${group}`,
-            sensorId: `moonPhase${dayIndex}`,
-            value: data.moonPhase[dayIndex],
-        });
-        addSetting({
-            name: `Moonrise time local ${group}`,
-            sensorId: `moonriseTimeLocal${dayIndex}`,
-            value: data.moonriseTimeLocal[dayIndex],
-        });
-        addSetting({
-            name: `Moonset time local ${group}`,
-            sensorId: `moonsetTimeLocal${dayIndex}`,
-            value: data.moonsetTimeLocal[dayIndex],
-        });
-        addSetting({
-            name: `Sunrise time local ${group}`,
+            name: `Sunrise time local`,
             sensorId: `sunriseTimeLocal${dayIndex}`,
             value: data.sunriseTimeLocal[dayIndex],
         });
         addSetting({
-            name: `Temperature max ${group}`,
-            sensorId: `temperatureMax${dayIndex}`,
-            value: UnitConverter.localToSi(data.temperatureMax[dayIndex], getUnit(units, UnitGroup.Temperature)),
+            name: `Sunset time local`,
+            sensorId: `sunsetTimeLocal${dayIndex}`,
+            value: data.sunsetTimeLocal[dayIndex],
+        });
+        addSetting({
+            name: `Temperature min`,
+            sensorId: `temperatureMin${dayIndex}`,
+            value: UnitConverter.localToSi(data.temperatureMin[dayIndex], getUnit(units, UnitGroup.Temperature)),
             unit: Unit.C
         });
         addSetting({
-            name: `Temperature min ${group}`,
+            name: `Temperature max`,
             sensorId: `temperatureMax${dayIndex}`,
             value: UnitConverter.localToSi(data.temperatureMax[dayIndex], getUnit(units, UnitGroup.Temperature)),
             unit: Unit.C
@@ -269,101 +274,103 @@ export const convertForecastDataToSensors = (data: ForecastData, units: UnitsSel
 
             if (partName) {
                 addSetting({
-                    name: `Narrative ${partName}`,
+                    name: `Narrative`,
                     sensorId: `narrative${dayIndex}${partCode}`,
                     value: data.daypart[0]?.narrative[partIndex],
                     subgroup: partName
                 });
                 addSetting({
-                    name: `Qualifier phrase ${partName}`,
+                    name: `Qualifier phrase`,
                     sensorId: `qualifierPhrase${dayIndex}${partCode}`,
                     value: data.daypart[0]?.qualifierPhrase[partIndex],
                     subgroup: partName
                 });
                 addSetting({
-                    name: `Sensible weather phrase ${partName}`,
+                    name: `Sensible weather phrase`,
                     sensorId: `sensibleWeatherPhrase${dayIndex}${partCode}`,
                     value: data.daypart[0]?.wxPhraseLong[partIndex],
                     subgroup: partName
                 });
                 addSetting({
-                    name: `Cloud coverage ${partName}`,
+                    name: `Cloud coverage`,
                     sensorId: `cloudCover${dayIndex}${partCode}`,
                     value: data.daypart[0]?.cloudCover[partIndex],
+                    unit: '%',
                     subgroup: partName
                 });
                 addSetting({
-                    name: `Precipitation chance ${partName}`,
+                    name: `Precipitation chance`,
                     sensorId: `precipChance${dayIndex}${partCode}`,
                     value: data.daypart[0]?.precipChance[partIndex],
                     unit: '%',
                     subgroup: partName
                 });
                 addSetting({
-                    name: `Precipitation type ${partName}`,
+                    name: `Precipitation type`,
                     sensorId: `precipType${dayIndex}${partCode}`,
                     value: data.daypart[0]?.precipType[partIndex],
                     subgroup: partName
                 });
                 addSetting({
-                    name: `Relative humidity ${partName}`,
+                    name: `Relative humidity`,
                     sensorId: `relativeHumidity${dayIndex}${partCode}`,
                     value: data.daypart[0]?.relativeHumidity[partIndex],
                     unit: '%',
                     subgroup: partName
                 });
                 addSetting({
-                    name: `Temperature ${partName}`,
-                    sensorId: `temperature${dayIndex}`,
+                    name: `Temperature`,
+                    sensorId: `temperature${dayIndex}${partCode}`,
                     value: UnitConverter.localToSi(data.daypart[0]?.temperature[partIndex], getUnit(units, UnitGroup.Temperature)),
-                    unit: Unit.C
-                });
-                addSetting({
-                    name: `Heat index ${partName}`,
-                    sensorId: `temperatureHeatIndex${dayIndex}${partCode}`,
-                    value: data.daypart[0]?.temperatureHeatIndex[partIndex],
+                    unit: Unit.C,
                     subgroup: partName
                 });
+                // addSetting({
+                //     name: `Heat index`,
+                //     sensorId: `temperatureHeatIndex${dayIndex}${partCode}`,
+                //     value: data.daypart[0]?.temperatureHeatIndex[partIndex],
+                //     subgroup: partName
+                // });
+                // addSetting({
+                //     name: `Thunder index`,
+                //     sensorId: `thunderIndex${dayIndex}${partCode}`,
+                //     value: data.daypart[0]?.thunderIndex[partIndex],
+                //     subgroup: partName
+                // });
+                // addSetting({
+                //     name: `UV index`,
+                //     sensorId: `uvIndex${dayIndex}${partCode}`,
+                //     value: data.daypart[0]?.uvIndex[partIndex],
+                //     subgroup: partName
+                // });
                 addSetting({
-                    name: `Thunder index ${partName}`,
-                    sensorId: `thunderIndex${dayIndex}${partCode}`,
-                    value: data.daypart[0]?.thunderIndex[partIndex],
-                    subgroup: partName
-                });
-                addSetting({
-                    name: `UV index ${partName}`,
-                    sensorId: `uvIndex${dayIndex}${partCode}`,
-                    value: data.daypart[0]?.uvIndex[partIndex],
-                    subgroup: partName
-                });
-                addSetting({
-                    name: `UV phrase ${partName}`,
+                    name: `UV phrase`,
                     sensorId: `uvDescription${dayIndex}${partCode}`,
                     value: data.daypart[0]?.uvDescription[partIndex],
                     subgroup: partName
                 });
                 addSetting({
-                    name: `Wind chill ${partName}`,
+                    name: `Wind chill`,
                     sensorId: `uvDescription${dayIndex}${partCode}`,
                     value: UnitConverter.localToSi(data.daypart[0]?.temperatureWindChill[partIndex], getUnit(units, UnitGroup.Temperature)),
                     unit: Unit.C,
                     subgroup: partName
                 });
                 addSetting({
-                    name: `Wind direction ${partName}`,
+                    name: `Wind direction`,
                     sensorId: `windDirection${dayIndex}${partCode}`,
                     value: data.daypart[0]?.windDirection[partIndex],
                     unit: '°',
                     subgroup: partName
                 });
                 addSetting({
-                    name: `Wind phrase ${partName}`,
+                    name: `Wind phrase`,
                     sensorId: `windPhrase${dayIndex}${partCode}`,
                     value: data.daypart[0]?.windPhrase[partIndex],
                     subgroup: partName
                 });
                 addSetting({
-                    name: `Wind speed ${partName}`,
+                    name: `Wind speed`,
                     sensorId: `windSpeed${dayIndex}${partCode}`,
                     value: UnitConverter.localToSi(data.daypart[0]?.windSpeed[partIndex], getUnit(units, UnitGroup.Speed)),
                     unit: Unit.M_S,

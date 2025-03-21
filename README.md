@@ -1,6 +1,7 @@
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/yourusername/mcp-3d-printer-server/graphs/commit-activity)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://makeapullrequest.com)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D%2018.0.0-green.svg)](https://nodejs.org/en/download/)
+[![Downloads](https://img.shields.io/npm/dm/scrypted-tempest.svg)](https://www.npmjs.com/package/scrypted-tempest)
 
 # Tempest (WeatherUnderground) Station Plugin for Scrypted
 ## Overview

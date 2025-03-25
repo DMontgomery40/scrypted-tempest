@@ -257,13 +257,19 @@ export const convertForecastDataToSensors = (data: ForecastData, units: UnitsSel
         addSetting({
             name: `Temperature min`,
             sensorId: `temperatureMin${dayIndex}`,
-            value: UnitConverter.localToSi(data.temperatureMin[dayIndex], getUnit(units, UnitGroup.Temperature)),
+            value: UnitConverter.localToSi(
+                data.temperatureMin[dayIndex] ?? data.calendarDayTemperatureMin[dayIndex],
+                getUnit(units, UnitGroup.Temperature)
+            ),
             unit: Unit.C
         });
         addSetting({
             name: `Temperature max`,
             sensorId: `temperatureMax${dayIndex}`,
-            value: UnitConverter.localToSi(data.temperatureMax[dayIndex], getUnit(units, UnitGroup.Temperature)),
+            value: UnitConverter.localToSi(
+                data.temperatureMax[dayIndex] ?? data.calendarDayTemperatureMax[dayIndex],
+                getUnit(units, UnitGroup.Temperature)
+            ),
             unit: Unit.C
         });
 

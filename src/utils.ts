@@ -120,7 +120,8 @@ export const convertWeatherDataToSensors = (data: ObservationsData) => {
         value: data.metric.temp,
     };
     newSensorsData['heatIndex'] = {
-        name: 'Head index',
+        name: 'Heat index',
+        unit: '°C',
         value: data.metric.heatIndex,
     };
     newSensorsData['dewPoint'] = {
